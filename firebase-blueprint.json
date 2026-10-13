@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "EvaluationProfile": {
+      "title": "Evaluation Profile",
+      "description": "Teacher profile configuration and UI customization settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "position": { "type": "string" },
+        "school": { "type": "string" },
+        "department": { "type": "string" },
+        "bio": { "type": "string" },
+        "googleDriveMainLink": { "type": "string" },
+        "customBackgroundUrl": { "type": "string" },
+        "backgroundOpacity": { "type": "number" },
+        "fontSizeScale": { "type": "number" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["name", "position"]
+    },
+    "EvaluationCategory": {
+      "title": "Evaluation Category",
+      "description": "Evaluation category and its criteria items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "categoryNumber": { "type": "number" },
+        "domain": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "maxScore": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "AdminUser": {
+      "title": "Admin User",
+      "description": "Authorized administrator user with edit access",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/evaluation_config/{configId}": {
+      "schema": "EvaluationProfile",
+      "description": "Teacher profile details and theme settings"
+    },
+    "/categories/{categoryId}": {
+      "schema": "EvaluationCategory",
+      "description": "Evaluation categories and criteria"
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Registered administrators with edit permissions"
+    }
+  }
+}

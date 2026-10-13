@@ -64,6 +64,8 @@ export interface TeacherProfile {
   bio: string;
   googleDriveMainLink: string;
   googleDriveFolderLabel: string;
+  tiktokUrl?: string;
+  facebookUrl?: string;
 }
 
 export interface EvaluationStoreState {

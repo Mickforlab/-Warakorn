@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TeacherProfile } from '../types/evaluation';
-import { X, Upload, Sliders, Image as ImageIcon, RotateCcw, Check, Eye } from 'lucide-react';
+import { X, Upload, Sliders, Image as ImageIcon, RotateCcw, Check, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
+import { compressImageFile } from '../utils/imageCompression';
 
 interface BackgroundCustomizerModalProps {
   profile: TeacherProfile;
@@ -22,23 +23,63 @@ export const BackgroundCustomizerModal: React.FC<BackgroundCustomizerModalProps>
   const [bgOpacity, setBgOpacity] = useState<number>(profile.bgOpacity ?? 35);
   const [bgBlur, setBgBlur] = useState<number>(profile.bgBlur ?? 0);
   const [showVectorOverlay, setShowVectorOverlay] = useState<boolean>(profile.showVectorOverlay ?? true);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
-  // File Upload to Base64
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const showSuccessFeedback = (msg: string) => {
+    setSaveFeedback(msg);
+    setTimeout(() => {
+      setSaveFeedback(null);
+    }, 3500);
+  };
+
+  // File Upload to Base64 with compression (safe ~50-90KB)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        setBgImageUrl(result);
+    if (!file) return;
+
+    setIsUploading(true);
+    setSaveFeedback(null);
+    try {
+      const result = await compressImageFile(file, 1000, 700, 0.62);
+      setBgImageUrl(result.dataUrl);
+      onUpdateBackground({
+        bgImageUrl: result.dataUrl,
+        bgOpacity,
+        bgBlur,
+        showVectorOverlay
+      });
+      showSuccessFeedback(`บันทึกรูปภาพจากคอมพิวเตอร์เรียบร้อย (${result.sizeKB} KB)`);
+    } catch (err) {
+      console.warn('Background image standard compression failed, attempting safe data URL fallback:', err);
+      try {
+        const rawUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+          reader.readAsDataURL(file);
+        });
+        const compressed = await compressImageFile(file, 800, 500, 0.50).then(r => r.dataUrl).catch(() => rawUrl);
+        const safeUrl = compressed.length > 250 * 1024 ? '' : compressed;
+        if (!safeUrl) {
+          alert('ไฟล์รูปภาพมีขนาดใหญ่เกินไป กรุณาเลือกไฟล์ JPG/PNG ที่มีขนาดไม่เกิน 5MB');
+          return;
+        }
+        setBgImageUrl(safeUrl);
         onUpdateBackground({
-          bgImageUrl: result,
+          bgImageUrl: safeUrl,
           bgOpacity,
           bgBlur,
           showVectorOverlay
         });
-      };
-      reader.readAsDataURL(file);
+        showSuccessFeedback('บันทึกรูปภาพพื้นหลังเรียบร้อย');
+      } catch {
+        alert('ไม่สามารถประมวลผลไฟล์รูปภาพได้');
+      }
+    } finally {
+      setIsUploading(false);
+      // Reset input value so re-selecting same file triggers onChange
+      e.target.value = '';
     }
   };
 
@@ -104,6 +145,18 @@ export const BackgroundCustomizerModal: React.FC<BackgroundCustomizerModalProps>
       bgBlur,
       showVectorOverlay
     });
+    showSuccessFeedback('บันทึกรูปภาพธีมงานเชื่อมแล้ว');
+  };
+
+  const handleClearImage = () => {
+    setBgImageUrl('');
+    onUpdateBackground({
+      bgImageUrl: '',
+      bgOpacity,
+      bgBlur,
+      showVectorOverlay
+    });
+    showSuccessFeedback('ลบรูปภาพพื้นหลังออกแล้ว (ใช้พื้นหลังเวกเตอร์)');
   };
 
   const handleReset = () => {
@@ -117,6 +170,17 @@ export const BackgroundCustomizerModal: React.FC<BackgroundCustomizerModalProps>
       bgBlur: 0,
       showVectorOverlay: true
     });
+    showSuccessFeedback('คืนค่าพื้นหลังเวกเตอร์ตั้งต้นเรียบร้อย');
+  };
+
+  const handleSaveAndClose = () => {
+    onUpdateBackground({
+      bgImageUrl,
+      bgOpacity,
+      bgBlur,
+      showVectorOverlay
+    });
+    onClose();
   };
 
   return (
@@ -131,15 +195,67 @@ export const BackgroundCustomizerModal: React.FC<BackgroundCustomizerModalProps>
             </span>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleSaveAndClose}
             className="p-1.5 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+            title="ปิด"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Live Feedback Banner */}
+        {saveFeedback && (
+          <div className="px-6 py-2.5 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{saveFeedback}</span>
+          </div>
+        )}
+
         {/* Body */}
         <div className="p-6 sm:p-8 space-y-6 max-h-[80vh] overflow-y-auto">
+          {/* Active Background Summary Card */}
+          <div className="bg-white border-2 border-slate-200 p-4 flex items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-16 h-12 bg-slate-100 border border-slate-300 overflow-hidden shrink-0 flex items-center justify-center relative">
+                {bgImageUrl ? (
+                  <img
+                    src={bgImageUrl}
+                    alt="Current Background"
+                    className="w-full h-full object-cover"
+                    style={{
+                      opacity: bgOpacity / 100,
+                      filter: bgBlur > 0 ? `blur(${Math.min(bgBlur, 4)}px)` : 'none'
+                    }}
+                  />
+                ) : (
+                  <div className="text-[10px] text-slate-400 font-mono text-center p-1 font-bold">
+                    VECTOR
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-slate-900 truncate">
+                  {bgImageUrl ? 'ภาพพื้นหลังที่กำลังใช้งาน' : 'ภาพพื้นหลังเวกเตอร์เริ่มต้น (ไม่มีรูปภาพ)'}
+                </div>
+                <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                  ความโปร่งแสง: {bgOpacity}% · ความเบลอ: {bgBlur}px {showVectorOverlay ? '· ซ้อนลายเส้นหุ่นยนต์' : ''}
+                </div>
+              </div>
+            </div>
+
+            {bgImageUrl && (
+              <button
+                type="button"
+                onClick={handleClearImage}
+                className="btn-lambo inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 cursor-pointer shrink-0"
+                title="ลบรูปภาพนี้ออก"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">ลบรูป</span>
+              </button>
+            )}
+          </div>
+
           {/* Section 1: Live Opacity & Blur Controls */}
           <div className="bg-slate-50 border border-slate-200 p-5 space-y-5">
             <div>
@@ -240,13 +356,25 @@ export const BackgroundCustomizerModal: React.FC<BackgroundCustomizerModalProps>
 
             {/* Upload Button */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50 hover:bg-amber-50/30 cursor-pointer transition-colors text-center">
-                <Upload className="w-6 h-6 text-amber-600 mb-2" />
-                <span className="text-xs font-bold text-slate-900">อัปโหลดรูปจากเครื่องคอมพิวเตอร์</span>
-                <span className="text-[11px] text-slate-500 mt-0.5">JPG, PNG หรือ WebP (ภาพงานเชื่อม / หุ่นยนต์)</span>
+              <label className={`flex flex-col items-center justify-center p-6 border-2 border-dashed ${isUploading ? 'border-amber-400 bg-amber-50/50 cursor-wait' : 'border-slate-300 hover:border-amber-500 bg-slate-50 hover:bg-amber-50/30 cursor-pointer'} transition-colors text-center`}>
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-6 h-6 text-amber-600 animate-spin mb-2" />
+                    <span className="text-xs font-bold text-slate-900">กำลังประมวลผลและบีบอัดภาพ...</span>
+                    <span className="text-[11px] text-slate-500 mt-0.5">ปรับขนาดให้คมชัดและโหลดเร็ว</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-amber-600 mb-2" />
+                    <span className="text-xs font-bold text-slate-900">อัปโหลดรูปจากเครื่องคอมพิวเตอร์</span>
+                    <span className="text-[11px] text-slate-500 mt-0.5">JPG, PNG หรือ WebP (ภาพงานเชื่อม / หุ่นยนต์)</span>
+                    <span className="text-[10px] text-amber-700 font-semibold mt-1 bg-amber-100/60 px-2 py-0.5 rounded">ระบบบันทึกภาพอัตโนมัติ</span>
+                  </>
+                )}
                 <input
                   type="file"
                   accept="image/*"
+                  disabled={isUploading}
                   className="hidden"
                   onChange={handleFileUpload}
                 />
@@ -261,9 +389,10 @@ export const BackgroundCustomizerModal: React.FC<BackgroundCustomizerModalProps>
                     placeholder="https://.../welding_wallpaper.jpg"
                     value={bgImageUrl}
                     onChange={(e) => {
-                      setBgImageUrl(e.target.value);
+                      const val = e.target.value;
+                      setBgImageUrl(val);
                       onUpdateBackground({
-                        bgImageUrl: e.target.value,
+                        bgImageUrl: val,
                         bgOpacity,
                         bgBlur,
                         showVectorOverlay
@@ -316,21 +445,22 @@ export const BackgroundCustomizerModal: React.FC<BackgroundCustomizerModalProps>
             </div>
           </div>
 
-          {/* Reset button */}
-          <div className="pt-2 flex justify-between items-center border-t border-slate-200">
+          {/* Bottom Actions */}
+          <div className="pt-3 flex flex-wrap justify-between items-center gap-3 border-t border-slate-200">
             <button
               onClick={handleReset}
-              className="btn-lambo flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 cursor-pointer"
+              className="btn-lambo flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>คืนค่าพื้นหลังเวกเตอร์ตั้งต้น</span>
             </button>
 
             <button
-              onClick={onClose}
-              className="btn-lambo px-6 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-xs"
+              onClick={handleSaveAndClose}
+              className="btn-lambo flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider cursor-pointer shadow-sm"
             >
-              เสร็จสิ้น
+              <Check className="w-4 h-4" />
+              <span>บันทึกและเสร็จสิ้น</span>
             </button>
           </div>
         </div>

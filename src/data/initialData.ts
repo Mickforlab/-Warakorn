@@ -21,6 +21,8 @@ export const initialTeacherProfile: TeacherProfile = {
   bio: "ปฏิบัติหน้าที่การสอนและพัฒนาการจัดการเรียนรู้ด้านเทคนิคงานเชื่อมโลหะ การผลิตชิ้นส่วนขั้นสูง และระบบเชื่อมอัตโนมัติ เน้นผู้เรียนเป็นสำคัญ ยึดมั่นในคุณธรรม จริยธรรม จรรยาบรรณวิชาชีพครู และขับเคลื่อนภารกิจตามมาตรฐานอาชีวศึกษา",
   googleDriveMainLink: "https://drive.google.com/drive/folders/1wArAkOrn_wKk_Wangklaikangwon_Teacher_Docs",
   googleDriveFolderLabel: "คลังเอกสารและหลักฐานการประเมิน (Google Drive รวม)",
+  tiktokUrl: "https://www.tiktok.com/@weldingwangklaikangwon",
+  facebookUrl: "https://www.facebook.com/profile.php?id=100082966278654",
 };
 
 export const initialCategories: EvaluationCategory[] = [

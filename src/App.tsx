@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useEvaluationStore } from './hooks/useEvaluationStore';
+import { useFirebaseAuth } from './hooks/useFirebaseAuth';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { EvaluationFramework } from './components/EvaluationFramework';
@@ -15,6 +16,8 @@ import { BackgroundCustomizerModal } from './components/BackgroundCustomizerModa
 import { WeldingTechBackground } from './components/WeldingTechBackground';
 import { ExportImportBar } from './components/ExportImportBar';
 import { Footer } from './components/Footer';
+import { FloatingSocialDock } from './components/SocialChannels';
+import { ShareModal } from './components/ShareModal';
 import {
   EvaluationCategory,
   EvaluationCriterion
@@ -26,10 +29,23 @@ import {
   FileText,
   Filter,
   ShieldCheck,
-  Briefcase
+  Briefcase,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 
 export default function App() {
+  const {
+    currentUser,
+    isLoadingAuth,
+    isAdmin,
+    authError,
+    login,
+    logout,
+    clearError,
+    primaryAdminEmail
+  } = useFirebaseAuth();
+
   const {
     profile,
     categories,
@@ -44,6 +60,7 @@ export default function App() {
     addFileToCriterion,
     removeFileFromCriterion,
     addImageToCriterion,
+    addMultipleImagesToCriterion,
     removeImageFromCriterion,
     behaviorCategories,
     performanceCategories,
@@ -51,8 +68,11 @@ export default function App() {
     totalImages,
     exportBackupJSON,
     importBackupJSON,
-    resetToDefault
-  } = useEvaluationStore();
+    resetToDefault,
+    syncStatus,
+    syncError,
+    forceSyncToCloud
+  } = useEvaluationStore(currentUser, isLoadingAuth);
 
   // Active Criterion Modal state
   const [selectedItem, setSelectedItem] = useState<{
@@ -65,6 +85,9 @@ export default function App() {
 
   // Background Customizer Modal state
   const [isBgCustomizerOpen, setIsBgCustomizerOpen] = useState(false);
+
+  // Share & QR Modal state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Apply Root font scaling to documentElement so all Tailwind rem-based typography scales dynamically
   useEffect(() => {
@@ -96,15 +119,21 @@ export default function App() {
   const handleScrollToSection = (sectionId: string) => {
     if (sectionId === 'domain-behavior') {
       setActiveDomain('behavior');
-      const el = document.getElementById('evaluation-explorer');
-      el?.scrollIntoView({ behavior: 'smooth' });
+      if (searchQuery) setSearchQuery('');
+      setTimeout(() => {
+        const el = document.getElementById('evaluation-explorer');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 60);
     } else if (sectionId === 'domain-performance') {
       setActiveDomain('performance');
-      const el = document.getElementById('evaluation-explorer');
-      el?.scrollIntoView({ behavior: 'smooth' });
+      if (searchQuery) setSearchQuery('');
+      setTimeout(() => {
+        const el = document.getElementById('evaluation-explorer');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 60);
     } else {
       const el = document.getElementById(sectionId);
-      el?.scrollIntoView({ behavior: 'smooth' });
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -122,201 +151,258 @@ export default function App() {
         isFixed={true}
       />
 
-      {/* 3-Zone High-Tech Navigation with Font Sizer & Background Controls */}
+      {/* 3-Zone High-Tech Navigation with Firebase Auth, Font Sizer & Background Controls */}
       <Navbar
         profile={profile}
         isEditMode={isEditMode}
+        isAdmin={isAdmin}
+        currentUser={currentUser}
+        isLoadingAuth={isLoadingAuth}
+        authError={authError}
+        syncStatus={syncStatus}
+        syncError={syncError}
+        onForceSync={forceSyncToCloud}
+        primaryAdminEmail={primaryAdminEmail}
+        onLogin={login}
+        onLogout={logout}
+        onClearError={clearError}
         onToggleEditMode={() => setIsEditMode(!isEditMode)}
         onOpenEditProfile={() => setIsEditProfileOpen(true)}
         onOpenBackgroundCustomizer={() => setIsBgCustomizerOpen(true)}
         onScaleChange={(scale) => updateProfile({ fontSizeScale: scale })}
         onScrollToSection={handleScrollToSection}
+        onOpenShare={() => setIsShareModalOpen(true)}
       />
+
+      {/* Admin Logged-in Notice Ribbon */}
+      {isAdmin && isEditMode && (
+        <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-sm sticky top-20 z-40">
+          <div className="max-w-[1440px] mx-auto w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-slate-950 rounded-full animate-ping" />
+              <span>
+                คุณกำลังอยู่ใน <strong className="font-bold uppercase tracking-wider">โหมดแก้ไขข้อมูล (Admin Edit Mode)</strong> — เข้าสู่ระบบในนาม <strong className="font-mono">{currentUser?.email}</strong>
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsEditProfileOpen(true)}
+                className="underline hover:opacity-80 cursor-pointer"
+              >
+                แก้ไขโปรไฟล์
+              </button>
+              <button
+                onClick={() => setIsBgCustomizerOpen(true)}
+                className="underline hover:opacity-80 cursor-pointer"
+              >
+                ปรับแต่งภาพพื้นหลัง
+              </button>
+              <button
+                onClick={() => setIsEditMode(false)}
+                className="bg-slate-950 text-white px-2.5 py-1 text-[11px] font-bold rounded hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                ออกจากโหมดแก้ไข
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="relative z-10">
         {/* Hero Stage (White Theme with Robotic Welding Tech & Custom Background) */}
         <HeroSection
           profile={profile}
-          totalFiles={totalFiles}
-          totalImages={totalImages}
+          isAdmin={isAdmin}
           isEditMode={isEditMode}
-          onExplore={() => handleScrollToSection('evaluation-explorer')}
+          onExplore={() => handleScrollToSection('evaluation-framework')}
           onOpenEditProfile={() => setIsEditProfileOpen(true)}
           onOpenBackgroundCustomizer={() => setIsBgCustomizerOpen(true)}
+          onOpenShare={() => setIsShareModalOpen(true)}
+          totalFiles={totalFiles}
+          totalImages={totalImages}
         />
 
-        {/* Evaluation Framework (2 Domains, 12 Categories - Arabic Numerals) */}
-        <EvaluationFramework
-          categories={categories}
-          onSelectCategory={(catId) => {
-            const cat = categories.find((c) => c.id === catId);
-            if (cat) {
-              setActiveDomain(cat.domain);
-              handleScrollToSection('evaluation-explorer');
-            }
-          }}
-        />
+        {/* Evaluation 12-Category High-Tech Framework */}
+        <div id="evaluation-framework">
+          <EvaluationFramework
+            categories={categories}
+            onSelectDomain={(domain) => {
+              handleScrollToSection(domain === 'behavior' ? 'domain-behavior' : 'domain-performance');
+            }}
+            onSelectCategory={(catId) => {
+              const targetCategory = categories.find((c) => c.id === catId);
+              if (targetCategory) {
+                setActiveDomain(targetCategory.domain);
+                if (searchQuery) setSearchQuery('');
+                setTimeout(() => {
+                  const el = document.getElementById(`category-${catId}`) || document.getElementById(`cat-${catId}`);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    el.classList.add('ring-2', 'ring-amber-500', 'transition-all');
+                    setTimeout(() => el.classList.remove('ring-2', 'ring-amber-500'), 2500);
+                  } else {
+                    const explorer = document.getElementById('evaluation-explorer');
+                    explorer?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 80);
+              }
+            }}
+          />
+        </div>
 
-        {/* Interactive Evaluation Explorer & Domain Tabs */}
-        <section id="evaluation-explorer" className="py-20 px-6 max-w-[1440px] mx-auto">
-          {/* Domain Selection Tabs (Arabic Numerals) */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 border-b border-slate-200 pb-6 mb-10">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setActiveDomain('behavior')}
-                className={`btn-lambo flex items-center gap-3 px-6 py-4 text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors cursor-pointer border ${
-                  activeDomain === 'behavior'
-                    ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:text-slate-900 border-slate-300'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-700" />
-                <span>ด้านที่ 1: การปฏิบัติตน (6 หมวดหมู่)</span>
-              </button>
+        {/* Category Explorer Section */}
+        <section id="evaluation-explorer" className="py-12 px-6">
+          <div className="max-w-[1440px] mx-auto">
+            {/* Domain Tabs & Filter Bar */}
+            <div className="bg-white/80 backdrop-blur-md border border-slate-200 p-4 sm:p-5 mb-8 shadow-xs">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                {/* Domain Selector Tabs with Arabic numbers */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    id="tab-domain-behavior"
+                    onClick={() => {
+                      setActiveDomain('behavior');
+                    }}
+                    className={`btn-lambo flex items-center gap-2.5 px-5 py-2.5 text-xs font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                      activeDomain === 'behavior'
+                        ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>ด้านที่ 1: ด้านการปฏิบัติตน ({behaviorCategories.length} หมวดหมู่)</span>
+                  </button>
 
-              <button
-                onClick={() => setActiveDomain('performance')}
-                className={`btn-lambo flex items-center gap-3 px-6 py-4 text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors cursor-pointer border ${
-                  activeDomain === 'performance'
-                    ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:text-slate-900 border-slate-300'
-                }`}
-              >
-                <Briefcase className="w-4 h-4 text-amber-700" />
-                <span>ด้านที่ 2: การปฏิบัติงาน (6 หมวดหมู่)</span>
-              </button>
+                  <button
+                    id="tab-domain-performance"
+                    onClick={() => {
+                      setActiveDomain('performance');
+                    }}
+                    className={`btn-lambo flex items-center gap-2.5 px-5 py-2.5 text-xs font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                      activeDomain === 'performance'
+                        ? 'bg-sky-500 text-white border-sky-500 shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <Briefcase className="w-4 h-4" />
+                    <span>ด้านที่ 2: ด้านการปฏิบัติงาน ({performanceCategories.length} หมวดหมู่)</span>
+                  </button>
+                </div>
+
+                {/* Search / Filter Input */}
+                <div className="relative min-w-[280px] sm:min-w-[340px]">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ค้นหาเกณฑ์, ตัวชี้วัด, หรือหลักฐาน..."
+                    className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition-colors font-sans"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Keyword Search Filter */}
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="ค้นหารหัส / หัวข้อ / ตัวชี้วัด..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 shadow-xs"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700 cursor-pointer"
-                >
-                  ✕
-                </button>
+            {/* List of Categories in Active Domain */}
+            <div className="space-y-6">
+              {filteredCategories.length === 0 ? (
+                <div className="bg-white/80 backdrop-blur-md border border-slate-200 p-12 text-center text-slate-500">
+                  <p className="text-sm">ไม่พบเกณฑ์การประเมินที่ตรงกับคำค้นหา "{searchQuery}"</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-3 text-xs text-amber-600 hover:underline font-bold"
+                  >
+                    ล้างการค้นหา
+                  </button>
+                </div>
+              ) : (
+                filteredCategories.map((cat) => (
+                  <div key={cat.id} id={`category-${cat.id}`}>
+                    <CategoryCard
+                      category={cat}
+                      isEditMode={isEditMode}
+                      onSelectCriterion={(catObj, critObj) =>
+                        setSelectedItem({ category: catObj, criterion: critObj })
+                      }
+                    />
+                  </div>
+                ))
               )}
             </div>
           </div>
-
-          {/* Categories Grid / List */}
-          {filteredCategories.length === 0 ? (
-            <div className="bg-slate-50 border border-slate-200 p-12 text-center text-slate-500 space-y-3">
-              <Filter className="w-8 h-8 mx-auto text-amber-500" />
-              <div className="text-base text-slate-800 font-bold">ไม่พบตัวชี้วัดที่ตรงกับคำค้นหา "{searchQuery}"</div>
-              <button
-                onClick={() => setSearchQuery('')}
-                className="btn-lambo text-xs text-slate-950 bg-amber-400 px-4 py-2 font-bold cursor-pointer"
-              >
-                ล้างคำค้นหา
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {filteredCategories.map((category) => (
-                <CategoryCard
-                  key={category.id}
-                  category={category}
-                  isEditMode={isEditMode}
-                  onSelectCriterion={(cat, crit) =>
-                    setSelectedItem({ category: cat, criterion: crit })
-                  }
-                />
-              ))}
-            </div>
-          )}
         </section>
 
-        {/* Evidence Vault & Google Drive Central Hub Section (Light High-Tech) */}
-        <section id="evidence-vault" className="py-20 bg-slate-50/70 backdrop-blur-xs border-t border-slate-200 px-6">
-          <div className="max-w-[1440px] mx-auto space-y-10">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 pb-6">
+        {/* Global Evidence & Google Drive Vault Section */}
+        <section id="evidence-vault" className="py-12 px-6 bg-slate-50/90 border-t border-slate-200">
+          <div className="max-w-[1440px] mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
               <div>
-                <div className="flex items-center gap-2 text-xs font-mono text-amber-700 uppercase tracking-widest font-bold mb-2">
-                  <FolderOpen className="w-4 h-4 text-amber-600" />
-                  <span>CENTRAL EVIDENCE VAULT & GOOGLE DRIVE</span>
+                <div className="text-xs font-mono font-bold uppercase tracking-widest text-amber-600 mb-1">
+                  OFFICIAL EVIDENCE ARCHIVE · ว.PA
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight uppercase">
-                  คลังแฟ้มเอกสารและร่องรอยหลักฐานรวม
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  คลังเอกสาร & ลิงก์ GOOGLE DRIVE
                 </h2>
-                <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-                  รวบรวมไฟล์และโฟลเดอร์ Google Drive ทั้งหมดที่ผูกกับตัวชี้วัด อำนวยความสะดวกให้คณะกรรมการเปิดตรวจสอบได้ทันที
+                <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                  ศูนย์รวมโฟลเดอร์และไฟล์หลักฐานการประเมินแยกตามหมวดหมู่ เชื่อมโยงตรงสู่ Google Drive เพื่อการตรวจประเมิน
                 </p>
               </div>
 
+              {/* Main Drive Access Button */}
               <a
                 href={profile.googleDriveMainLink || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-lambo flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 px-6 py-3 text-xs font-bold uppercase tracking-wider transition-colors shrink-0 shadow-sm"
+                className="btn-lambo flex items-center justify-center gap-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 px-6 py-3 text-xs font-bold tracking-wider uppercase transition-all shadow-md shrink-0"
               >
                 <FolderOpen className="w-4 h-4" />
-                <span>เปิดโฟลเดอร์ DRIVE หลัก</span>
+                <span>เข้าสู่ GOOGLE DRIVE หลักทั้งหมด</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
 
-            {/* Evidence Files List Across All Criteria */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categories.flatMap((cat) =>
-                cat.criteria.flatMap((crit) =>
-                  crit.files.map((file) => ({
-                    ...file,
-                    criterionCode: crit.code,
-                    criterionTitle: crit.title,
-                    categoryTitle: cat.title,
-                    categoryOrder: cat.orderNumber
-                  }))
-                )
-              ).map((item, idx) => (
+            {/* Grid of Category Folders */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {categories.map((cat) => (
                 <div
-                  key={idx}
-                  className="bg-white border border-slate-200 hover:border-amber-400 p-5 flex flex-col justify-between transition-colors shadow-xs group"
+                  key={cat.id}
+                  className="bg-white p-4 border border-slate-200 hover:border-amber-400 transition-all shadow-xs flex flex-col justify-between group"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
-                      <span className="text-amber-700 font-bold">
-                        ตัวชี้วัด {item.criterionCode}
-                      </span>
-                      <span>หมวดที่ {item.categoryOrder}</span>
+                  <div>
+                    <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
+                      <span className="font-bold text-amber-600">หมวดหมู่ที่ {cat.code}</span>
+                      <span>คะแนนเต็ม {cat.maxScore}</span>
                     </div>
-
-                    <h4 className="text-sm font-bold text-slate-900 group-hover:text-amber-800 transition-colors leading-snug">
-                      {item.title}
-                    </h4>
-
-                    {item.notes && (
-                      <p className="text-xs text-slate-500 line-clamp-2">
-                        {item.notes}
-                      </p>
-                    )}
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 group-hover:text-amber-600 transition-colors mb-2">
+                      {cat.title}
+                    </h3>
+                    <div className="text-[11px] text-slate-500 mb-4">
+                      {cat.criteria.reduce((s, c) => s + c.files.length, 0)} ไฟล์เอกสาร ·{' '}
+                      {cat.criteria.reduce((s, c) => s + c.images.length, 0)} รูปภาพหลักฐาน
+                    </div>
                   </div>
 
-                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-sky-700 font-mono flex items-center gap-1 font-medium">
-                      <FileText className="w-3 h-3 text-sky-600" />
-                      <span>Google Drive File</span>
+                  <a
+                    href={profile.googleDriveMainLink || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between text-[11px] font-semibold text-slate-700 bg-slate-50 hover:bg-amber-50 hover:text-amber-950 p-2 border border-slate-200 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-amber-600" />
+                      เปิดดูโฟลเดอร์หมวด {cat.code}
                     </span>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-lambo text-xs text-slate-800 bg-slate-100 hover:bg-amber-400 hover:text-slate-950 px-3 py-1.5 transition-colors font-bold flex items-center gap-1"
-                    >
-                      <span>เปิดเอกสาร</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
                 </div>
               ))}
             </div>
@@ -335,6 +421,12 @@ export default function App() {
       {/* Footer */}
       <Footer profile={profile} />
 
+      {/* Floating Quick Social Access (TikTok & Facebook) */}
+      <FloatingSocialDock
+        tiktokUrl={profile.tiktokUrl}
+        facebookUrl={profile.facebookUrl}
+      />
+
       {/* Criterion Detail Modal */}
       {selectedItem && (
         <CriterionModal
@@ -351,6 +443,7 @@ export default function App() {
           onAddFile={addFileToCriterion}
           onRemoveFile={removeFileFromCriterion}
           onAddImage={addImageToCriterion}
+          onAddMultipleImages={addMultipleImagesToCriterion}
           onRemoveImage={removeImageFromCriterion}
         />
       )}
@@ -372,6 +465,13 @@ export default function App() {
           onClose={() => setIsBgCustomizerOpen(false)}
         />
       )}
+
+      {/* Share & QR Code Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        teacherName={profile.name}
+      />
     </div>
   );
 }

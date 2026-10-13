@@ -1,15 +1,17 @@
 import React from 'react';
-import { EvaluationCategory } from '../types/evaluation';
-import { Layers, ShieldCheck, Briefcase, ChevronRight, FileCheck } from 'lucide-react';
+import { EvaluationCategory, EvaluationDomainType } from '../types/evaluation';
+import { Layers, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface EvaluationFrameworkProps {
   categories: EvaluationCategory[];
   onSelectCategory?: (categoryId: string) => void;
+  onSelectDomain?: (domain: EvaluationDomainType) => void;
 }
 
 export const EvaluationFramework: React.FC<EvaluationFrameworkProps> = ({
   categories,
-  onSelectCategory
+  onSelectCategory,
+  onSelectDomain
 }) => {
   const behaviorCategories = categories.filter(c => c.domain === 'behavior');
   const performanceCategories = categories.filter(c => c.domain === 'performance');
@@ -52,109 +54,157 @@ export const EvaluationFramework: React.FC<EvaluationFrameworkProps> = ({
         {/* 2-Column Domain Matrix with Arabic Numerals */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Domain 1: Behavior */}
-          <div className="bg-white border border-slate-200 p-6 space-y-6 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs font-mono">
-                  1
+          <div className="bg-white border border-slate-200 p-6 space-y-6 shadow-sm flex flex-col justify-between">
+            <div className="space-y-6">
+              {/* Domain 1 Interactive Header */}
+              <div
+                onClick={() => onSelectDomain && onSelectDomain('behavior')}
+                className="flex items-center justify-between border-b border-slate-200 pb-4 cursor-pointer group/header hover:bg-amber-50/50 p-2.5 -m-2.5 rounded transition-all"
+                title="คลิกเพื่อไปยังข้อมูลด้านที่ 1 (DOMAIN 1) ด้านล่าง"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs font-mono shadow-xs">
+                    1
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono text-amber-700 tracking-wider uppercase font-semibold">
+                      DOMAIN 1
+                    </span>
+                    <h3 className="text-xl font-bold text-slate-900 group-hover/header:text-amber-800 transition-colors mt-0.5">
+                      ด้านการปฏิบัติตน ({behaviorCategories.length} หมวดหมู่)
+                    </h3>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-xs font-mono text-amber-700 tracking-wider uppercase font-semibold">
-                    DOMAIN 1
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500 font-mono hidden sm:inline">29 ตัวชี้วัด</span>
+                  <span className="flex items-center gap-1 text-xs font-bold text-amber-900 bg-amber-100 group-hover/header:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded transition-colors shadow-2xs">
+                    <span>ดูข้อมูล</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-amber-700" />
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 mt-0.5">
-                    ด้านการปฏิบัติตน (6 หมวดหมู่)
-                  </h3>
                 </div>
               </div>
-              <span className="text-xs text-slate-500 font-mono">29 ตัวชี้วัด</span>
-            </div>
 
-            <div className="space-y-3">
-              {behaviorCategories.map((cat, idx) => {
-                const totalFiles = cat.criteria.reduce((s, c) => s + c.files.length, 0);
+              {/* Domain 1 Category List */}
+              <div className="space-y-3">
+                {behaviorCategories.map((cat, idx) => {
+                  const totalFiles = cat.criteria.reduce((s, c) => s + c.files.length, 0);
 
-                return (
-                  <div
-                    key={cat.id}
-                    onClick={() => onSelectCategory && onSelectCategory(cat.id)}
-                    className="group bg-slate-50 hover:bg-amber-50/60 border border-slate-200 hover:border-amber-400 p-4 transition-colors cursor-pointer flex items-center justify-between gap-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="font-mono text-xs text-amber-700 font-bold mt-0.5">
-                        {idx + 1}.
-                      </span>
-                      <div>
-                        <div className="text-sm font-bold text-slate-900 group-hover:text-amber-800 transition-colors">
-                          {cat.title}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          {cat.criteria.length} ตัวชี้วัด · เอกสารแนบ {totalFiles} ไฟล์
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => onSelectCategory && onSelectCategory(cat.id)}
+                      className="group bg-slate-50 hover:bg-amber-50/60 border border-slate-200 hover:border-amber-400 p-4 transition-colors cursor-pointer flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="font-mono text-xs text-amber-700 font-bold mt-0.5">
+                          {idx + 1}.
+                        </span>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 group-hover:text-amber-800 transition-colors">
+                            {cat.title}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {cat.criteria.length} ตัวชี้วัด · เอกสารแนบ {totalFiles} ไฟล์
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 text-xs text-slate-500 group-hover:text-slate-900 transition-colors shrink-0">
-                      <span>ตรวจสอบ</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-amber-600" />
+                      <div className="flex items-center gap-2 text-xs text-slate-500 group-hover:text-slate-900 transition-colors shrink-0">
+                        <span>ตรวจสอบ</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-amber-600" />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Bottom button for Domain 1 */}
+            <button
+              type="button"
+              onClick={() => onSelectDomain && onSelectDomain('behavior')}
+              className="w-full mt-2 py-3 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all cursor-pointer rounded shadow-2xs"
+            >
+              <span>ไปที่ข้อมูลด้านที่ 1: การปฏิบัติตน (ด้านล่าง)</span>
+              <ChevronDown className="w-4 h-4 text-amber-700" />
+            </button>
           </div>
 
           {/* Domain 2: Performance */}
-          <div className="bg-white border border-slate-200 p-6 space-y-6 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-sky-500 text-white flex items-center justify-center font-bold text-xs font-mono">
-                  2
+          <div className="bg-white border border-slate-200 p-6 space-y-6 shadow-sm flex flex-col justify-between">
+            <div className="space-y-6">
+              {/* Domain 2 Interactive Header */}
+              <div
+                onClick={() => onSelectDomain && onSelectDomain('performance')}
+                className="flex items-center justify-between border-b border-slate-200 pb-4 cursor-pointer group/header hover:bg-sky-50/60 p-2.5 -m-2.5 rounded transition-all"
+                title="คลิกเพื่อไปยังข้อมูลด้านที่ 2 (DOMAIN 2) ด้านล่าง"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-sky-500 text-white flex items-center justify-center font-bold text-xs font-mono shadow-xs">
+                    2
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono text-sky-700 tracking-wider uppercase font-semibold">
+                      DOMAIN 2
+                    </span>
+                    <h3 className="text-xl font-bold text-slate-900 group-hover/header:text-sky-800 transition-colors mt-0.5">
+                      ด้านการปฏิบัติงาน ({performanceCategories.length} หมวดหมู่)
+                    </h3>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-xs font-mono text-sky-700 tracking-wider uppercase font-semibold">
-                    DOMAIN 2
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500 font-mono hidden sm:inline">15 ตัวชี้วัด</span>
+                  <span className="flex items-center gap-1 text-xs font-bold text-sky-900 bg-sky-100 group-hover/header:bg-sky-200 border border-sky-300 px-3 py-1.5 rounded transition-colors shadow-2xs">
+                    <span>ดูข้อมูล</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-sky-700" />
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 mt-0.5">
-                    ด้านการปฏิบัติงาน (6 หมวดหมู่)
-                  </h3>
                 </div>
               </div>
-              <span className="text-xs text-slate-500 font-mono">15 ตัวชี้วัด</span>
-            </div>
 
-            <div className="space-y-3">
-              {performanceCategories.map((cat, idx) => {
-                const totalFiles = cat.criteria.reduce((s, c) => s + c.files.length, 0);
+              {/* Domain 2 Category List */}
+              <div className="space-y-3">
+                {performanceCategories.map((cat, idx) => {
+                  const totalFiles = cat.criteria.reduce((s, c) => s + c.files.length, 0);
 
-                return (
-                  <div
-                    key={cat.id}
-                    onClick={() => onSelectCategory && onSelectCategory(cat.id)}
-                    className="group bg-slate-50 hover:bg-sky-50/60 border border-slate-200 hover:border-sky-400 p-4 transition-colors cursor-pointer flex items-center justify-between gap-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="font-mono text-xs text-sky-700 font-bold mt-0.5">
-                        {idx + 1}.
-                      </span>
-                      <div>
-                        <div className="text-sm font-bold text-slate-900 group-hover:text-sky-800 transition-colors">
-                          {cat.title}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          {cat.criteria.length} ตัวชี้วัด · เอกสารแนบ {totalFiles} ไฟล์
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => onSelectCategory && onSelectCategory(cat.id)}
+                      className="group bg-slate-50 hover:bg-sky-50/60 border border-slate-200 hover:border-sky-400 p-4 transition-colors cursor-pointer flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="font-mono text-xs text-sky-700 font-bold mt-0.5">
+                          {idx + 1}.
+                        </span>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 group-hover:text-sky-800 transition-colors">
+                            {cat.title}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {cat.criteria.length} ตัวชี้วัด · เอกสารแนบ {totalFiles} ไฟล์
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 text-xs text-slate-500 group-hover:text-slate-900 transition-colors shrink-0">
-                      <span>ตรวจสอบ</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-sky-600" />
+                      <div className="flex items-center gap-2 text-xs text-slate-500 group-hover:text-slate-900 transition-colors shrink-0">
+                        <span>ตรวจสอบ</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-sky-600" />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Bottom button for Domain 2 */}
+            <button
+              type="button"
+              onClick={() => onSelectDomain && onSelectDomain('performance')}
+              className="w-full mt-2 py-3 px-4 bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-900 font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all cursor-pointer rounded shadow-2xs"
+            >
+              <span>ไปที่ข้อมูลด้านที่ 2 (DOMAIN 2): การปฏิบัติงาน (ด้านล่าง)</span>
+              <ChevronDown className="w-4 h-4 text-sky-700" />
+            </button>
           </div>
         </div>
       </div>

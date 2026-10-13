@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TeacherProfile } from '../types/evaluation';
 import { X, Save, Upload, RotateCcw } from 'lucide-react';
 import { AppLogo } from './AppLogo';
+import { compressImageFile } from '../utils/imageCompression';
 
 interface EditProfileModalProps {
   profile: TeacherProfile;
@@ -16,17 +17,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<TeacherProfile>({ ...profile });
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
+      try {
+        const result = await compressImageFile(file, 300, 300, 0.75);
         setFormData(prev => ({
           ...prev,
-          logoUrl: reader.result as string
+          logoUrl: result.dataUrl
         }));
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.warn('Logo standard compression failed, attempting secondary compression:', err);
+        try {
+          const result = await compressImageFile(file, 200, 200, 0.65);
+          setFormData(prev => ({
+            ...prev,
+            logoUrl: result.dataUrl
+          }));
+        } catch {
+          alert('ไม่สามารถประมวลผลไฟล์ตราสัญลักษณ์ได้ กรุณาลองเลือกไฟล์ JPG หรือ PNG อื่น');
+        }
+      }
     }
   };
 
@@ -207,6 +218,41 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <span className="text-[11px] text-slate-500 mt-1 block">
               คณะกรรมการสามารถคลิกปุ่มบนแถบเมนูด้านบนเพื่อเปิดเข้าดูโฟลเดอร์ Google Drive นี้ได้ทันที
             </span>
+          </div>
+
+          {/* Social Media Links */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-200">
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                ลิงก์ TikTok แผนกวิชา
+              </label>
+              <input
+                type="url"
+                placeholder="https://www.tiktok.com/@weldingwangklaikangwon"
+                value={formData.tiktokUrl || ''}
+                onChange={(e) => setFormData({ ...formData, tiktokUrl: e.target.value })}
+                className="w-full bg-white border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-amber-500 font-mono text-xs"
+              />
+              <span className="text-[10px] text-slate-500 mt-0.5 block">
+                เช่น https://www.tiktok.com/@weldingwangklaikangwon
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                ลิงก์ Facebook แผนกวิชา
+              </label>
+              <input
+                type="url"
+                placeholder="https://www.facebook.com/profile.php?id=..."
+                value={formData.facebookUrl || ''}
+                onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })}
+                className="w-full bg-white border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-amber-500 font-mono text-xs"
+              />
+              <span className="text-[10px] text-slate-500 mt-0.5 block">
+                เช่น https://www.facebook.com/profile.php?id=100082966278654
+              </span>
+            </div>
           </div>
 
           <div>

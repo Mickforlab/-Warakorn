@@ -1,8 +1,9 @@
 import React from 'react';
 import { TeacherProfile } from '../types/evaluation';
-import { ExternalLink, Award, CheckCircle, ChevronDown, Sparkles, ShieldCheck, Sliders } from 'lucide-react';
+import { ExternalLink, Award, CheckCircle, ChevronDown, Sparkles, ShieldCheck, Sliders, Share2 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { WeldingTechBackground } from './WeldingTechBackground';
+import { HeroSocialChannels, TikTokIcon, FacebookIcon } from './SocialChannels';
 
 interface HeroSectionProps {
   profile: TeacherProfile;
@@ -12,6 +13,8 @@ interface HeroSectionProps {
   onExplore: () => void;
   onOpenEditProfile: () => void;
   onOpenBackgroundCustomizer: () => void;
+  onOpenShare?: () => void;
+  isAdmin?: boolean;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -21,7 +24,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   isEditMode,
   onExplore,
   onOpenEditProfile,
-  onOpenBackgroundCustomizer
+  onOpenBackgroundCustomizer,
+  onOpenShare,
+  isAdmin = false
 }) => {
   return (
     <section id="hero" className="relative min-h-[85vh] flex flex-col justify-center bg-white/40 backdrop-blur-[2px] border-b border-slate-200/80 overflow-hidden px-6 py-16">
@@ -73,6 +78,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <ExternalLink className="w-4 h-4 text-amber-600" />
               </a>
 
+              {/* Share Website Button (Only visible to the owner/admin) */}
+              {isAdmin && onOpenShare && (
+                <button
+                  type="button"
+                  onClick={onOpenShare}
+                  className="btn-lambo flex items-center gap-2 bg-white/90 hover:bg-white text-slate-800 border-2 border-slate-300 hover:border-amber-500 px-6 py-4 text-sm font-bold tracking-wider uppercase transition-colors shadow-sm cursor-pointer"
+                  title="แชร์ลิงก์ออนไลน์ หรือสร้าง QR Code"
+                >
+                  <Share2 className="w-4 h-4 text-amber-600" />
+                  <span>แชร์ผลงาน (SHARE)</span>
+                </button>
+              )}
+
               {/* Edit Mode Quick Profile Action Button */}
               {isEditMode && (
                 <>
@@ -94,6 +112,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 </>
               )}
             </div>
+
+            {/* Social Media Channels Showcase (TikTok & Facebook) */}
+            <HeroSocialChannels
+              tiktokUrl={profile.tiktokUrl}
+              facebookUrl={profile.facebookUrl}
+            />
           </div>
 
           {/* Right Column: High-Prestige Official Evaluation Card (White/Elevated) */}
@@ -173,6 +197,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <div className="p-2.5 bg-slate-50 border border-slate-100">
                   <div className="text-xl font-bold text-amber-600 font-mono">{totalFiles}</div>
                   <div className="text-[11px] text-slate-500">เอกสาร & ไฟล์แนบ</div>
+                </div>
+              </div>
+
+              {/* Quick Social Badges on Dossier Card */}
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-mono text-[11px]">ช่องทางออนไลน์:</span>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={profile.tiktokUrl || 'https://www.tiktok.com/@weldingwangklaikangwon'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-black text-white text-[11px] font-bold rounded shadow-xs transition-colors"
+                  >
+                    <TikTokIcon className="w-3 h-3 text-pink-400" />
+                    <span>TikTok</span>
+                  </a>
+                  <a
+                    href={profile.facebookUrl || 'https://www.facebook.com/profile.php?id=100082966278654'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1877F2] hover:bg-blue-700 text-white text-[11px] font-bold rounded shadow-xs transition-colors"
+                  >
+                    <FacebookIcon className="w-3 h-3" />
+                    <span>Facebook</span>
+                  </a>
                 </div>
               </div>
             </div>
