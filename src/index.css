@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-white: #FFFFFF;
+    --bg-light-slate: #F8FAFC;
+    --surface-card: #FFFFFF;
+    --surface-elevated: #F1F5F9;
+    --accent-gold: #D97706;
+    --accent-welding: #F59E0B;
+    --accent-plasma: #0284C7;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --border-subtle: #E2E8F0;
+  }
+
+  body {
+    background-color: #FFFFFF;
+    color: #0F172A;
+    font-family: 'Prompt', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+    overflow-x: hidden;
+  }
+
+  /* Lamborghini High-Tech Display Font */
+  .font-display {
+    font-family: 'Outfit', 'Prompt', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+/* Custom Scrollbar in Clean Tech Amber & Slate */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #F59E0B;
+}
+
+/* Zero Radius Utility Enforcement */
+.btn-lambo {
+  border-radius: 0 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* High-Tech Grid Pattern */
+.bg-tech-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
+}
+
+/* Glowing Spark Animation */
+@keyframes sparkPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.animate-spark {
+  animation: sparkPulse 2.5s infinite ease-in-out;
+}
